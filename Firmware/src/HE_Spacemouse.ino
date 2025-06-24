@@ -50,7 +50,7 @@ int debug = 0;
 // With the Teaching Tech default, these two axis are swapped so that pulling up or pushing down the knob controls zoom
 // and pushing away or pulling it towards you controls up and down. I prefer this.
 // set to true for 3DConnection movement.
-bool movement3DC  = false;
+bool movement3DC  = true;
 
 // Direction
 // Modify the direction of translation/rotation depending on preference. This can also be done per application in the 3DConnexion software.
