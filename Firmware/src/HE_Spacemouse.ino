@@ -42,7 +42,7 @@
 // 4: Output translation and rotation values. Approx -500 to +500 depending on the parameter. *JC ADC reference 2.56v
 // 5: Output debug 3 and 4 side by side for direct cause and effect reference. *JC ADC reference 2.56v
 // 6: *JC Output debug info for pseudo key state machine. ( two keys pressed at once to simulate another key press)
-int debug = 0;
+
 
 // Choose between 3DConnexion default movement or Teaching Tech's
 // With 3DConnexion you push the joystick away from you to zoom out and towards you to zoom in.
@@ -193,7 +193,9 @@ void readAllFromButtons(uint8_t *buttonValues){
   switch(keyState) {
     case 0: // no button pressed so far
      if (buttonValues[1] || buttonValues[3]) {
-       if (debug == 6) Serial.println("keyState 0 - button pressed move to keyState 1");
+       #if DEBUG_LEVEL == 6 
+       Serial.println("keyState 0 - button pressed move to keyState 1"); 
+       #endif
        keyState = 1;
        keyTimeOld = keyTimeNew;
        buttonValues[1] = buttonValues[3] = false; // don't send button values yet.
@@ -201,7 +203,9 @@ void readAllFromButtons(uint8_t *buttonValues){
      break;
 
      case 1: // button 1 or 3 pressed - what has happened with the elapsed time
-     if (debug == 6) Serial.println("keyState 1 - one button pressed");
+      #if DEBUG_LEVEL == 6 
+      Serial.println("keyState 1 - one button pressed");
+      #endif
      if (keyTimeNew - keyTimeOld > 15) {
        keyState = 3; // second button not pressed
      } else if (buttonValues[1] && buttonValues[3]) {
@@ -211,7 +215,9 @@ void readAllFromButtons(uint8_t *buttonValues){
      break;
 
      case 2: // second button pressed - set logical button
-     if (debug == 6) Serial.println("keyState 2 - second button pressed - set logical button");
+      #if DEBUG_LEVEL == 6 
+       Serial.println("keyState 2 - second button pressed - set logical button");
+       #endif
      buttonValues[0] = true;
      keyState = 4;
      keyPressed = 0; // C004 - *JC - record button 0 pressed
@@ -219,7 +225,9 @@ void readAllFromButtons(uint8_t *buttonValues){
      break;
 
      case 3: // second button not pressed, send the original button
-     if (debug == 6) Serial.println("keyState 3 - second button not pressed in time");
+      #if DEBUG_LEVEL == 6 
+       Serial.println("keyState 3 - second button not pressed in time");
+       #endif
      keyState = 4;
      if (buttonValues[1]) { // C004 - *JC - record which button was pressed and will be reported
       keyPressed = 1;
@@ -229,7 +237,9 @@ void readAllFromButtons(uint8_t *buttonValues){
      break;
 
      case 4: //wait until buttons released to reset state
-     if (debug == 6) Serial.println("keyState 4 - wait for buttons to be released before resetting state");
+      #if DEBUG_LEVEL == 6 
+       Serial.println("keyState 4 - wait for buttons to be released before resetting state");
+       #endif
 
      if (!buttonValues[1] && !buttonValues[3]) {
        keyState = 0;   
@@ -271,15 +281,18 @@ void setup() {
   // HID protocol is set.
   static HIDSubDescriptor node(_hidReportDescriptor, sizeof(_hidReportDescriptor));
   HID().AppendDescriptor(&node);
+  
   // Begin Seral for debugging
-  Serial.begin(250000);
+  #if DEBUG_LEVEL > 0
+  Serial.begin(MONITOR_SPEED);
   delay(100);
+  #endif
   // *JC - setup button pins for digitalRead
   for(int i=0; i<3; i++){
     pinMode(BTNLIST[i],INPUT_PULLUP);
   }
   //*JC - reduce ADC reference voltage from 5V to 2.56 if not using debug = 1
-  if (debug == 1) {
+  if (DEBUG_LEVEL == 1) {
     analogReference(DEFAULT);
   } else {
     analogReference(INTERNAL);
@@ -314,7 +327,9 @@ void send_command(int16_t rx, int16_t ry, int16_t rz, int16_t x, int16_t y, int1
   if (buttonValues[0]+2*buttonValues[1]+4*buttonValues[2]+8*buttonValues[3]!=keyChange) { // C004 - *JC - changed operation *JC - only send report if a button is pressed
     HID().SendReport(3,btn,4);
     keyChange = buttonValues[0]+2*buttonValues[1]+4*buttonValues[2]+8*buttonValues[3]; // C004 - *JC - record keys pressed for next time through the loop
-    if (debug == 6) {Serial.print("keyChange = "); Serial.println(keyChange);} // C005 - *JC - to help debug key press issues
+     #if DEBUG_LEVEL == 6 
+      {Serial.print("keyChange = "); Serial.println(keyChange);} // C005 - *JC - to help debug key press issues
+      #endif
 
   }
 }
@@ -327,7 +342,7 @@ void loop() {
   // button values true or false
   readAllFromButtons(buttonReads);
   // Report back 0-1023 raw ADC 10-bit values if enabled
-  if(debug == 1){ 
+   #if DEBUG_LEVEL == 1 
     Serial.print("HES0:"); Serial.print(rawReads[0]); Serial.print(",");
     Serial.print("HES1:"); Serial.print(rawReads[1]); Serial.print(",");
     Serial.print("HES2:"); Serial.print(rawReads[2]); Serial.print(",");
@@ -336,7 +351,7 @@ void loop() {
     Serial.print("HES7:"); Serial.print(rawReads[5]); Serial.print(",");
     Serial.print("HES8:"); Serial.print(rawReads[6]); Serial.print(",");
     Serial.print("HES9:"); Serial.println(rawReads[7]);
-  }
+  #endif
 
   // Subtract centre position from measured position to determine movement.
   // *JC - As we are going negative with the readings, we make them positive
@@ -344,7 +359,7 @@ void loop() {
   // C0004 - changed back to the original TT version to match the code from AndunHH 
   for(int i=0; i<8; i++) centered[i] = centerPoints[i]-rawReads[i]; // 
   // Report centered Sensor values if enabled. Values should be approx -256 to +256, jitter around 0 at idle.
-  if(debug == 2){
+   #if DEBUG_LEVEL == 2 
     Serial.print("HES0:"); Serial.print(centered[0]); Serial.print(",");
     Serial.print("HES1:"); Serial.print(centered[1]); Serial.print(",");
     Serial.print("HES2:"); Serial.print(centered[2]); Serial.print(",");
@@ -353,7 +368,7 @@ void loop() {
     Serial.print("HES7:"); Serial.print(centered[5]); Serial.print(",");
     Serial.print("HES8:"); Serial.print(centered[6]); Serial.print(",");
     Serial.print("HES9:"); Serial.println(centered[7]);
-  }
+  #endif
   // Filter movement values. Set to zero if movement is below deadzone threshold.
   // *JC - Changed operation so there isn't a sudden jump when the value first falls outside deadzone
   for(int i=0; i<8; i++){
@@ -365,7 +380,7 @@ void loop() {
     }
   }
   // Report centered Sensor values. Filtered for deadzone. Approx -500 to +500, locked to zero at idle
-  if(debug == 3){
+   #if DEBUG_LEVEL == 3 
     Serial.print("HES0:"); Serial.print(centered[0]); Serial.print(",");
     Serial.print("HES1:"); Serial.print(centered[1]); Serial.print(",");
     Serial.print("HES2:"); Serial.print(centered[2]); Serial.print(",");
@@ -378,7 +393,7 @@ void loop() {
     Serial.print("But1:"); Serial.print(buttonReads[1]); Serial.print(",");
     Serial.print("But2:"); Serial.print(buttonReads[2]); Serial.print(",");
     Serial.print("But3:"); Serial.println(buttonReads[3]);  
-  }
+   #endif
 
   // Doing all through arithmetic contribution by fdmakara
   // Integer has been changed to 16 bit int16_t to match what the HID protocol expects.
@@ -415,16 +430,16 @@ void loop() {
   if(invRZ == true){ rotZ = rotZ*-1;};
 
 // Report translation and rotation values if enabled. Approx -800 to 800 depending on the parameter.
-  if(debug == 4){
+   #if DEBUG_LEVEL == 4 
     Serial.print("TX:"); Serial.print(transX); Serial.print(",");
     Serial.print("TY:"); Serial.print(transY); Serial.print(",");
     Serial.print("TZ:"); Serial.print(transZ); Serial.print(",");
     Serial.print("RX:"); Serial.print(rotX); Serial.print(",");
     Serial.print("RY:"); Serial.print(rotY); Serial.print(",");
     Serial.print("RZ:"); Serial.println(rotZ);
-  }
+  #endif
 // Report debug 4 and 5 info side by side for direct reference if enabled. Very useful if you need to alter which inputs are used in th arithmatic above.
-  if(debug == 5){
+   #if DEBUG_LEVEL == 5 
     Serial.print("HES0:"); Serial.print(centered[0]); Serial.print(",");
     Serial.print("HES1:"); Serial.print(centered[1]); Serial.print(",");
     Serial.print("HES2:"); Serial.print(centered[2]); Serial.print(",");
@@ -439,7 +454,7 @@ void loop() {
     Serial.print("RX:"); Serial.print(rotX); Serial.print(",");
     Serial.print("RY:"); Serial.print(rotY); Serial.print(",");
     Serial.print("RZ:"); Serial.println(rotZ);
-  }
+ #endif
 
 // Send data to the 3DConnexion software.
 // The correct order for me was determined after trial and error - Teaching Tech
