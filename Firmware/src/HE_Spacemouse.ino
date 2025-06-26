@@ -57,14 +57,14 @@ bool movement3DC  = true;
 // Switch between true/false as desired.
 bool invX = false; // pan left/right
 bool invY = false; // Zoom in/out or pan up/down // C003 *JC - 3DC default movement or TT default
-bool invZ = true; // pan up/down or zoom in/out // C003 *JC - 3DC default movement or TT default
+bool invZ = false; // pan up/down or zoom in/out // C003 *JC - 3DC default movement or TT default
 bool invRX = false; // Rotate around X axis (tilt front/back)
 bool invRY = false; // Rotate around Y axis (tilt left/right)
 bool invRZ = false; // Rotate around Z axis (twist left/right)
 
 // Speed
 // Modify to change sensitibity/speed. Default and maximum 100. Works like a percentage ie. 50 is half as fast as default. This can also be done per application in the 3DConnexion software.
-int16_t speed = 80;
+int16_t speed = 90;
 
 
 // Default Assembly when looking from above: *JC modified for Hall Effect Sensors (HES)
@@ -96,7 +96,7 @@ int BTNLIST[3] = { // Button pin list
 // Deadzone to filter out unintended movements. 
 // Increase if the mouse has small movements when it should be idle or the mouse is too senstive to subtle movements.
 // Note that the 3d Connections also has its own deadzone processes
-int DEADZONE = 40;
+int DEADZONE = 50;
 
 
 // This portion sets up the communication with the 3DConnexion software. The communication protocol is created here.
