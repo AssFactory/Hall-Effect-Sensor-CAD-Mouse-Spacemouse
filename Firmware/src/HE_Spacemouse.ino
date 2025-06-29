@@ -63,7 +63,7 @@ const bool invertY = false;     // Pan up/down (or Zoom if use3DConnexionMovemen
 const bool invertZ = false;     // Zoom (or Pan up/down if use3DConnexionMovement is false)
 const bool invertRX = false;    // Tilt front/back
 const bool invertRY = false;    // Tilt left/right
-const bool invertRZ = true;     // Twist clockwise/counter-clockwise (Original code reversed this by default)
+const bool invertRZ = false;     // Twist clockwise/counter-clockwise (Original code reversed this by default)
 
 // SENSITIVITY
 // Adjusts the overall speed. 100 is default, 50 is half speed, etc.
@@ -465,10 +465,5 @@ void printDebugInfo(const int* raw, const int* centered, int16_t tx, int16_t ty,
         case DEBUG_NONE:
             break; 
     }  
-    Serial.end();
-   // while (Serial); // Wait for serial connection termination
-    delay(100);
-    pinMode(0, INPUT_PULLUP);
-    delay(10);
 }
 #endif 
