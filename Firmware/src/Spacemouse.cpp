@@ -105,9 +105,9 @@ enum ButtonIndex {
 //========================================================================================
 // This descriptor tells the host computer that this device is a 3DConnexion SpaceMouse.
 // It defines three types of reports:
-// Report ID 1: Translation data (X, Y, Z axes)
-// Report ID 2: Rotation data (RX, RY, RZ axes)
+// Report ID 1: Translation data (X, Y, Z, RX, RY, RZ axes)
 // Report ID 3: Button data
+
 static const uint8_t _hidReportDescriptor[] PROGMEM = {
     0x05, 0x01,        // Usage Page (Generic Desktop)
     0x09, 0x08,        // Usage (Multi-Axis)
@@ -115,27 +115,19 @@ static const uint8_t _hidReportDescriptor[] PROGMEM = {
     // --- Translation Data Report ---
     0xa1, 0x00,        //   Collection (Physical)
     0x85, 0x01,        //     Report ID (1)
-    0x16, 0x10, 0xFE,  //     Logical Minimum (-500)
-    0x26, 0xF4, 0x01,  //     Logical Maximum (500)
+    0x16, 0x00, 0xFE,  //     Logical Minimum (-512) // instead of 500 =  0x10 oxFE
+    0x26, 0xFF, 0x01,  //     Logical Maximum (511) // instead of 500 = 0xF4, 0x01
+    0x75, 0x10,        //     Report Size (16 bits)
+    0x95, 0x06,        //     Report Count (6)
     0x09, 0x30,        //     Usage (X)
     0x09, 0x31,        //     Usage (Y)
     0x09, 0x32,        //     Usage (Z)
-    0x75, 0x10,        //     Report Size (16 bits)
-    0x95, 0x03,        //     Report Count (3)
-    0x81, 0x02,        //     Input (Data, Variable, Absolute)
-    0xC0,              //   End Collection
-    // --- Rotation Data Report ---
-    0xa1, 0x00,        //   Collection (Physical)
-    0x85, 0x02,        //     Report ID (2)
-    0x16, 0x10, 0xFE,  //     Logical Minimum (-500)
-    0x26, 0xF4, 0x01,  //     Logical Maximum (500)
     0x09, 0x33,        //     Usage (RX)
     0x09, 0x34,        //     Usage (RY)
     0x09, 0x35,        //     Usage (RZ)
-    0x75, 0x10,        //     Report Size (16 bits)
-    0x95, 0x03,        //     Report Count (3)
     0x81, 0x02,        //     Input (Data, Variable, Absolute)
     0xC0,              //   End Collection
+   
     // --- Button Data Report ---
     0xa1, 0x00,        //   Collection (Physical)
     0x85, 0x03,        //     Report ID (3)
@@ -145,7 +137,7 @@ static const uint8_t _hidReportDescriptor[] PROGMEM = {
     0x15, 0x00,        //     Logical Minimum (0)
     0x25, 0x01,        //     Logical Maximum (1)
     0x75, 0x01,        //     Report Size (1)
-    0x95, 0x20,        //     Report Count (32) -> 4 bytes
+    0x95, 0x20,        //     Report Count (32)
     0x81, 0x02,        //     Input (Data, Variable, Absolute)
     0xC0,              //   End Collection
     0xC0               // End Collection
@@ -396,29 +388,25 @@ void readButtons(uint8_t* currentButtonStates) {
  * @brief Sends the 6-DOF data and button states to the computer via HID reports.
  */
 void sendHidReport(int16_t rx, int16_t ry, int16_t rz, int16_t x, int16_t y, int16_t z, const uint8_t* buttons) {
-    // Send Translation Report (ID 1)
-    uint8_t trans[6] = { lowByte(x), highByte(x), lowByte(y), highByte(y), lowByte(z), highByte(z) };
-    HID().SendReport(1, trans, 6);
+    // Send Translation Report (ID 0x1)
+    uint8_t trans[] = { lowByte(x), highByte(x), 
+                          lowByte(y), highByte(y), 
+                          lowByte(z), highByte(z),
+                          lowByte(rx), highByte(rx), 
+                          lowByte(ry), highByte(ry), 
+                          lowByte(rz), highByte(rz) };
+    HID().SendReport(0x1, trans, sizeof(trans));
 
-    // Send Rotation Report (ID 2)
-    uint8_t rot[6] = { lowByte(rx), highByte(rx), lowByte(ry), highByte(ry), lowByte(rz), highByte(rz) };
-    HID().SendReport(2, rot, 6);
-
-    // --- Send Button Report (ID 3) ---
+    // Send Button Report (ID 0x3) 
     static uint8_t lastButtonBits = 0;
 
-    // Map logical buttons to the bits expected by 3DConnexion software in Fusion 360
-    // buttons[0] -> bit 0 (Config Dialog)
-    // buttons[1] -> bit 2 (Fit to Screen) -> *NOTE: Original code used bit 1. Remapped to match comments.
-    // buttons[2] -> bit 4 (Right View)
-    // buttons[3] -> bit 5 (Front View)
     uint8_t currentButtonBits = (buttons[0] << 0) | (buttons[1] << 2) | (buttons[2] << 4) | (buttons[3] << 5);
 
     // Only send a button report if the button state has changed.
     // This prevents flooding the host and ensures proper press/release events.
     if (currentButtonBits != lastButtonBits) {
-        uint8_t btnReport[4] = {currentButtonBits, 0, 0, 0};
-        HID().SendReport(3, btnReport, 4);
+        uint8_t btnReport[] = {0x0, 0x0,  0x0, currentButtonBits};
+        HID().SendReport(0x3, btnReport, sizeof(btnReport));
         lastButtonBits = currentButtonBits;
     }
 }
